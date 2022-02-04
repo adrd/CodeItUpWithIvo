@@ -1,0 +1,23 @@
+﻿@model OJS.Web.Areas.Administration.ViewModels.Contest.DeleteProblemsFromContestViewModel
+    
+@using OJS.Web.Areas.Administration.Controllers
+
+@using Resource = Resources.Areas.Administration.Problems.Views.ProblemsDeleteAll
+
+@{
+    ViewBag.Title = Resource.Page_title;
+}
+
+<h2>@Model.Name</h2>
+<h3>@ViewBag.Title</h3>
+
+@using (Html.BeginForm<ProblemsController>(c => c.ConfirmDeleteAll(Model.Id), FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    <p>
+        @Resource.Confirm_message @Model.Name?
+    </p>
+
+    <input type="submit" class="btn btn-primary" value="@Resource.Confirm" />
+    @(Html.ActionLink<ProblemsController>(Resource.Back, c => c.Index(Model.Id), null, new { @class = "btn btn-primary" }))
+}

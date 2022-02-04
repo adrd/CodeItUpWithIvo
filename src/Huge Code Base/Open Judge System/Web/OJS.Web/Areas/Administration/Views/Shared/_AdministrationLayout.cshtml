@@ -1,0 +1,26 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    @RenderSection("styles", required: false)
+}
+
+<div>
+    @RenderBody()
+</div>
+
+@section scripts {
+    @RenderSection("scripts", required: false)
+    <script src="~/Scripts/Administration/administration-global.js"></script>
+
+    <script type="text/x-kendo-template" id="model-state-errors-template">
+        # if (errors.length) { #
+        <ul>
+            # for (var i = 0; i < errors.length; ++i) { #
+            <li>#= errors[i] #</li>
+            # } #
+        </ul>
+        # } #
+    </script>
+}

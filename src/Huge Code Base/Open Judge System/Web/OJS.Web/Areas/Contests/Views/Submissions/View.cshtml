@@ -1,0 +1,379 @@
+﻿@using System.Text.RegularExpressions
+
+@using OJS.Common.Extensions
+@using OJS.Web.Areas.Contests.Controllers
+@using OJS.Workers.Common.Models
+
+@using Resource = Resources.Areas.Contests.Views.SubmissionsView
+@using AdministrationResource = Resources.Areas.Administration.AdministrationGeneral
+
+@model OJS.Web.Areas.Contests.ViewModels.Submissions.SubmissionDetailsViewModel
+
+@{
+    const string serverPathsRegexPattern = @"C:\\[^\s:]+\\";
+
+    var hrefToProblemSubmitPage = $"{Url.Action<CompeteController>(c => c.Index(Model.ContestId, Model.IsContestActive, null))}#{Model.ProblemIndexInContest}";
+
+    ViewBag.Title = string.Format(Resource.Title, Model.Id, Model.UserName);
+}
+
+@section styles {
+    @Styles.Render("~/Content/CodeMirror/codemirror")
+    @Styles.Render("~/Content/CodeMirror/codemirrormerge")
+}
+
+@section scripts {
+    @Scripts.Render("~/bundles/codemirror")
+    @Scripts.Render("~/bundles/codemirrormerge")
+    <script type="text/javascript">
+        $(function () {
+            var textEditor = document.getElementById('code');
+            if (textEditor) {
+                var editor = new CodeMirror.fromTextArea(textEditor, {
+                    mode: "text/x-csharp",
+                    lineNumbers: true,
+                    matchBrackets: true,
+                    theme: "the-matrix",
+                    showCursorWhenSelecting: true,
+                    undoDepth: 100,
+                    lineWrapping: true,
+                    readOnly: true,
+                    autofocus: false
+                });
+
+                editor.setSize('100%', '100%');
+            }
+        });
+    </script>
+}
+
+<ol class="breadcrumb">
+    <li><a href="/">@Resource.Home</a></li>
+    <li><a href="/Submissions">@Resource.Submissions</a></li>
+    <li class="active">@Model.Id</li>
+</ol>
+
+<h2>@ViewBag.Title <a href="@hrefToProblemSubmitPage">@Model.ProblemName</a></h2>
+<div class="row'">
+    <a class="btn btn-sm btn-primary" href="#SourceCode">@Resource.View_code</a>
+    @if (Model.UserHasAdminPermission)
+    {
+        @Html.ActionLink(Resource.Update, "Update", "Submissions", new { area = "Administration", id = Model.Id }, new { @class = "btn btn-sm btn-primary right-buffer-sm" })
+        @Html.ActionLink(Resource.Delete, "Delete", "Submissions", new { area = "Administration", id = Model.Id }, new { @class = "btn btn-sm btn-primary right-buffer-sm" })
+        @Html.ActionLink(Resource.Tests, "Problem", "Tests", new { area = "Administration", id = Model.ProblemId }, new { @class = "btn btn-sm btn-primary right-buffer-sm" })
+        @Html.ActionLink(Resource.Authors_profile, "Index", "Profile", new { area = "Users", id = Model.UserName }, new { @class = "btn btn-sm btn-primary right-buffer-sm" })
+        using (Html.BeginForm("Retest", "Submissions", new { area = "Administration" }, FormMethod.Post, new { @class = "inline-form", role = "form" }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(m => m.Id)
+            <input type="submit" class="btn btn-sm btn-primary" value=@Resource.Retest />
+        }
+    }
+</div>
+
+@if (Model.UserHasAdminPermission)
+{
+    <div class="clearfix"></div>
+    if (!string.IsNullOrWhiteSpace(Model.ProcessingComment))
+    {
+        <h2>@Resource.Execution_result:</h2>
+        <pre>@Model.ProcessingComment</pre>
+    }
+}
+
+@if (Model.IsDeleted)
+{
+    <div class="alert alert-danger top-buffer">@Resource.Submission_is_deleted</div>
+}
+
+@if (!Model.Processed)
+{
+    <div class="alert alert-info top-buffer">@Resource.Submission_in_queue</div>
+}
+else
+{
+    if (!Model.IsCompiledSuccessfully)
+    {
+        <div class="alert alert-danger top-buffer">@Resource.Compile_time_error_occured</div>
+
+        if (!string.IsNullOrWhiteSpace(Model.CompilerComment))
+        {
+            <h2>@Resource.Compilation_result:</h2>
+
+            var compilerComment = Model.UserHasAdminPermission
+                ? Model.CompilerComment
+                : Regex.Replace(Model.CompilerComment, serverPathsRegexPattern, "...\\");
+
+            <pre>@compilerComment</pre>
+        }
+    }
+    else if (!Model.ShowResults) // Inform user that compilation is successful when not showing him all the test runs
+    {
+        <h2 class="text-success top-buffer">@Resource.Compiled_successfully</h2>
+    }
+
+    if (!Model.HasTestRuns && Model.IsCompiledSuccessfully && string.IsNullOrEmpty(Model.ProcessingComment) && Model.TotalTests > 0)
+    {
+        var message = @Html.Raw(string.Format(@Resource.User_retest_prompt, Model.Points, Model.MaxPoints));
+
+        <div class="alert alert-warning top-buffer">
+            <p>@message</p>
+        </div>
+
+        using (Html.BeginForm("Retest", "Submissions", new { area = "Administration" }, FormMethod.Post, new { @class = "inline-form", role = "form" }))
+        {
+            @Html.AntiForgeryToken()
+            @Html.HiddenFor(m => m.Id)
+            <input type="submit" class="btn btn-sm btn-primary" value=@Resource.Retest />
+        }
+    }
+}
+@if (Model.Processed && (Model.ShowResults || Model.UserHasAdminPermission))
+{
+    foreach (var testResult in Model.TestRuns.OrderByDescending(x => x.IsTrialTest).ThenBy(x => x.Order))
+    {
+        var className = string.Empty;
+        var testResultText = string.Empty;
+        if (testResult.ResultType == TestRunResultType.CorrectAnswer)
+        {
+            className = "text-success";
+            testResultText = Resource.Answer_correct;
+        }
+        else if (testResult.ResultType == TestRunResultType.WrongAnswer)
+        {
+            className = "text-danger";
+            testResultText = Resource.Answer_incorrect;
+        }
+        else if (testResult.ResultType == TestRunResultType.MemoryLimit)
+        {
+            className = "text-danger";
+            testResultText = Resource.Memory_limit;
+        }
+        else if (testResult.ResultType == TestRunResultType.TimeLimit)
+        {
+            className = "text-danger";
+            testResultText = Resource.Time_limit;
+        }
+        else if (testResult.ResultType == TestRunResultType.RunTimeError)
+        {
+            className = "text-danger";
+            testResultText = Resource.Runtime_error;
+        }
+
+        <h3 class="@className">
+            @if (testResult.IsTrialTest)
+            {
+                @($"{Resource.Zero_test}{testResult.Order}")
+            }
+            else
+            {
+                @($"{Resource.Test}{testResult.Order}")
+            }
+            (@testResultText)
+            @if (Model.UserHasAdminPermission)
+            {
+                <small>@($"{Resource.Run}{testResult.Id}")</small>
+                <small><a href="/Administration/Tests/Details/@testResult.TestId">@($"{Resource.Test}{testResult.TestId}")</a></small>
+            }
+        </h3>
+
+        if (testResult.IsTrialTest)
+        {
+            <div>@Resource.Zero_tests_not_included_in_result</div>
+        }
+
+        var displayShowInputButton = Model.UserHasAdminPermission ||
+            (!testResult.HideInput &&
+                (testResult.IsTrialTest || testResult.IsOpenTest || Model.ShowDetailedFeedback));
+
+        var displayExecutionComment = !string.IsNullOrWhiteSpace(testResult.ExecutionComment) &&
+            (testResult.IsTrialTest ||
+            Model.UserHasAdminPermission ||
+            Model.ShowDetailedFeedback ||
+            testResult.IsOpenTest);
+
+        var displayTryToSubmitAgainMessage = testResult.ResultType == TestRunResultType.WrongAnswer &&
+            string.IsNullOrEmpty(testResult.UserOutputFragment) &&
+            string.IsNullOrEmpty(testResult.ExecutionComment);
+
+        if (displayTryToSubmitAgainMessage)
+        {
+            <div>
+                <pre>@Resource.Try_submit_again_message_when_no_output</pre>
+            </div>
+        }
+
+        if (displayExecutionComment)
+        {
+            var executionComment = testResult.ExecutionComment;
+
+            var truncateFeedbackMessage = !Model.UserHasAdminPermission &&
+                                          !testResult.IsTrialTest &&
+                                          !Model.ShowDetailedFeedback &&
+                                          !testResult.IsOpenTest;
+            if (truncateFeedbackMessage)
+            {
+                if (Model.SubmissionType.CompilerType == CompilerType.CSharp)
+                {
+                    // The following code will hide the exception message from user when the code is written in C#
+                    var errorParts = executionComment.Split(':');
+                    if (errorParts.Length >= 2)
+                    {
+                        executionComment = errorParts[0] + ":" + errorParts[1];
+                    }
+                    else
+                    {
+                        executionComment = executionComment.MaxLengthWithEllipsis(37);
+                    }
+                }
+                else // Other language
+                {
+                    executionComment = executionComment.MaxLengthWithEllipsis(64);
+                }
+            }
+
+            <div class="diff">
+
+                @if (displayShowInputButton)
+                {
+                    @(Ajax.ActionLink(
+                        Resource.Show_input_text,
+                        nameof(TestsController.GetInputData),
+                        "Tests",
+                        new { testId = testResult.TestId, submissionId = Model.Id },
+                        new AjaxOptions
+                        {
+                            HttpMethod = "Get",
+                            InsertionMode = InsertionMode.Replace,
+                            UpdateTargetId = $"test-{testResult.TestId}-input-data",
+                            OnSuccess = "onTestInputDataSuccess",
+                            OnBegin = "preventDefaultIfLoadedOnce"
+                        },
+                        new { id = $"test-{testResult.TestId}-input-data-btn", @class = "btn btn-primary btn-sm", data_test_id = testResult.TestId }))
+
+                    <div id="test-@(testResult.TestId)-input-data"></div>
+                }
+
+                <pre>@executionComment</pre>
+            </div>
+        }
+
+        var displayCheckerComment = !string.IsNullOrWhiteSpace(testResult.CheckerComment) ||
+            testResult.ExpectedOutputFragment != null ||
+            testResult.UserOutputFragment != null;
+
+        if (displayCheckerComment)
+        {
+            if (displayShowInputButton)
+            {
+                <div class="diff">
+                    @if (!string.IsNullOrWhiteSpace(testResult.CheckerComment))
+                    {
+                        <pre>@testResult.CheckerComment</pre>
+                    }
+
+                    @(Ajax.ActionLink(
+                        Resource.Show_input_text,
+                        nameof(TestsController.GetInputData),
+                        "Tests",
+                        new { testId = testResult.TestId, submissionId = Model.Id },
+                        new AjaxOptions
+                        {
+                            HttpMethod = "Get",
+                            InsertionMode = InsertionMode.Replace,
+                            UpdateTargetId = $"test-{testResult.TestId}-input-data",
+                            OnSuccess = "onTestInputDataSuccess",
+                            OnBegin = "preventDefaultIfLoadedOnce"
+                        },
+                        new { id = $"test-{testResult.TestId}-input-data-btn", @class = "btn btn-primary btn-sm", data_test_id = testResult.TestId }))
+
+                    <div id="test-@(testResult.TestId)-input-data"></div>
+
+                    @if (testResult.ExpectedOutputFragment != null || testResult.UserOutputFragment != null)
+                    {
+                        <div class="row top-buffer">
+                            <div class="col-md-6">@Resource.Expected_output</div>
+                            <div class="col-md-6">@Resource.Your_output</div>
+                        </div>
+
+                        <div id="diff-@testResult.Id"></div>
+
+                        <script>
+                            $(function () {
+                                var diffContainer = document.getElementById('diff-@testResult.Id');
+                                var mergeView = CodeMirror.MergeView(diffContainer, {
+                                    origLeft: @Html.Raw(Json.Encode(testResult.ExpectedOutputFragment)) || '',
+                                    value: @Html.Raw(Json.Encode(testResult.UserOutputFragment)) || '',
+                                    mode: 'text/x-diff',
+                                    lineNumbers: true,
+                                    lockScroll: true,
+                                    connect: 'align',
+                                    theme: 'the-matrix',
+                                    highlightDifferences: true,
+                                    revertButtons: false,
+                                    allowEditingOriginals: false,
+                                    lineWrapping: true,
+                                    collapseIdentical: false,
+                                    readOnly: true,
+                                    autofocus: false
+                                });
+
+                                mergeView.left.gap.innerText = '';
+                            });
+                        </script>
+                    }
+                </div>
+            }
+        }
+
+        <div>@Resource.Time_used: @($"{testResult.TimeUsed / 1000.0:0.000}") s</div>
+        <div>@Resource.Memory_used: @($"{testResult.MemoryUsed / 1024.0 / 1024.0:0.00}") MB</div>
+    }
+}
+
+<h3 id="SourceCode">@Resource.Source_code</h3>
+@if (Model.IsBinaryFile)
+{
+    <a class="btn btn-default" href="/Contests/Submissions/Download/@Model.Id">@Resource.Download_binary_file</a>
+}
+else
+{
+    <textarea id="code">@Model.ContentAsString</textarea>
+}
+
+<p class="top-buffer">@AdministrationResource.Created_on: @Model.CreatedOn</p>
+
+@if (Model.UserHasAdminPermission)
+{
+    <p>@AdministrationResource.Modified_on: @Model.ModifiedOn</p>
+}
+
+<script>
+    function onTestInputDataSuccess() {
+        $(this).text('@Resource.Hide_input_text');
+        $(this)[0].attributes['data-loaded'] = true;
+        attachInputButtonEventHandlers(this);
+    }
+
+    function preventDefaultIfLoadedOnce(ev) {
+        if ($(this)[0].attributes['data-loaded']) {
+            ev.abort();
+        }
+    }
+
+    function attachInputButtonEventHandlers(button) {
+        $(button).on('click', function(ev) {
+            ev.preventDefault();
+            var testId = $(button)[0].attributes['data-test-id'].value;
+            var $container = $($('#test-' + testId + '-input-data div:first-of-type')[0]);
+
+            if ($container.hasClass('hidden')) {
+                $container.removeClass('hidden');
+                $(button).text('@Resource.Hide_input_text');
+            } else {
+                $container.addClass('hidden');
+                $(button).text('@Resource.Show_input_text');
+            }
+        });
+    }
+</script>

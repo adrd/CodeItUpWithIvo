@@ -1,0 +1,98 @@
+﻿@using System.Collections
+@using OJS.Web.Areas.Administration.ViewModels.Submission
+
+@using GeneralResource = Resources.Areas.Administration.AdministrationGeneral
+@using Resource = Resources.Areas.Administration.Submissions.Views.Partials.SubmissionsGrid
+
+@model int?
+
+@{
+    const string ControllerName = "Submissions";
+}
+
+@(Html.Kendo().Grid<SubmissionAdministrationGridViewModel>()
+    .Name("DataGrid")
+    .Columns(columns =>
+    {
+        columns.Bound(model => model.Id);
+        columns.Bound(model => model.ParticipantName);
+        columns.Bound(model => model.ProblemName).ClientTemplate("<a href='" + Url.Action("Details", "Problems") + "/#= ProblemId #'>#= ProblemName #</a>");
+        columns.Bound(model => model.ContestName).ClientTemplate("<a href='/Contests/#= ContestId #/#= ContestUrlName #'>#= ContestName #</a>");
+        columns.Bound(model => model.SubmissionTypeName);
+        columns.ForeignKey(model => model.Status, (IEnumerable)ViewBag.SubmissionStatusData, "Id", "Name");
+        columns.Bound(model => model.Points);
+        columns.Bound(model => model.CreatedOn).Filterable(x => x.UI(GridFilterUIRole.DateTimePicker)).Hidden();
+        columns.Bound(model => model.ModifiedOn).Filterable(x => x.UI(GridFilterUIRole.DateTimePicker)).Hidden();
+        columns.Template(@<text></text>).ClientTemplate("<a href='" + Url.Action("Update", ControllerName) + "/#= Id #' class='k-button k-button-icontext'>" + GeneralResource.Change + "</a>").Title(GeneralResource.Change);
+        columns.Template(@<text></text>).ClientTemplate("<a href='" + Url.Action("Delete", ControllerName) + "/#= Id #' class='k-button k-button-icontext'>" + GeneralResource.Delete + "</a>").Title(GeneralResource.Delete);
+        columns.Template(@<text></text>).ClientTemplate("<a href='" + Url.Action("View", "Submissions", new { Area = "Contests" }) + "/#= Id #' class='k-button k-button-icontext' target='_blank'>" + Resource.Details + "</a>").Title(Resource.Details);
+        columns.Template(@<text></text>).ClientTemplate("#=createRetestForm(Id)#").Title(Resource.Retest);
+    })
+    .ToolBar(toolbar =>
+    {
+        toolbar.Custom().Text(GeneralResource.Create).Action("Create", ControllerName);
+        if (User.IsAdmin())
+        {
+            toolbar.Custom().Text(Resource.Delete_selected_submissions).HtmlAttributes(new { id = "bulk-delete-submissions" }).Url(Url.Action("BulkDeleteSubmissions", "Submissions", new { Area = "Administration", page = 1, pageSize = "~", filter = "!!", sort = "~" })).Name("custom-toolbar-button");
+        }
+
+        toolbar.Custom().Text(GeneralResource.Back_to_navigation).Action("Navigation", "Administration", new { Area = "" }).Name("custom-toolbar-button");
+        toolbar.Custom().Text(GeneralResource.Export_to_excel).Name("custom-toolbar-button").HtmlAttributes(new { id = "export" }).Url(Url.Action("ExportToExcel", ControllerName, new { page = 1, pageSize = "~", filter = "!!", sort = "~" }));
+    })
+    .Editable(editable =>
+    {
+        editable.DisplayDeleteConfirmation(GeneralResource.Delete_prompt);
+    })
+    .ColumnMenu()
+    .Events(e => e.DataBound("onDataBound"))
+    .Pageable(x => x.Refresh(true))
+    .Sortable(x => x.Enabled(true).AllowUnsort(false))
+    .Filterable(x => x.Enabled(true))
+    /*.Groupable(x =>
+    {
+        x.Enabled(true);
+        x.Messages(m => m.Empty("Хванете заглавието на колона и го преместете тук, за да групирате по тази колона."));
+    })*/
+    .Reorderable(x => x.Columns(true))
+    .Resizable(x => x.Columns(true))
+    .DataSource(datasource => datasource
+        .Ajax()
+        .ServerOperation(true)
+        .Model(model =>
+        {
+            model.Id(m => m.Id);
+        })
+        .Sort(sort => sort.Add(x => x.CreatedOn).Descending())
+        .Read(read => read.Action("ReadSubmissions", ControllerName, new { id = Model }))
+        .Destroy(destroy => destroy.Action("Destroy", ControllerName))
+        .Events(ev => ev.Error("validateModelStateErrors"))
+    )
+)
+
+<script type="text/javascript">
+    function onDataBound(e) {
+        CreateExportToExcelButton();
+
+        @if (User.IsAdmin())
+        {
+            <text>CreateKendoSubmitParamsButton('bulk-delete-submissions');</text>
+        }
+    }
+
+    $(function () {
+        $('#bulk-delete-submissions').click(function () {
+            var submissionsCount = $('#DataGrid').data('kendoGrid').dataSource.total();
+            return confirm('Сигурни ли сте, че искате да изтриете избраните ' + submissionsCount + ' решения? Моля, уверете се, че сте филтрирали коректно преди да продължите.');
+        });
+    });
+    function createRetestForm(id) {
+        var token = $("[name='__RequestVerificationToken']").val();
+        var formOpeningTagHtml = "<form action=\"/Administration/Submissions/Retest\" class=\"inline-form\" method=\"post\" role=\"form\">";
+        var antiforgeryTokenHtml = "<input name=\"__RequestVerificationToken\" type=\"hidden\" value=\"" + token + "\">";
+        var inputHtml = "<input data-val=\"true\" data-val-number=\"The field Id must be a number.\" data-val-required=\"The Id field is required.\" id=\"Id\" name=\"Id\" type=\"hidden\" value=\"" + id + "\" />";
+        var submitHtml = "<input type=\"submit\" class=\"k-button k-button-icontext\" value=\"Retest\" />";
+        var formHtmlClosingTag = "</form>";
+        var formHtml = formOpeningTagHtml + inputHtml + antiforgeryTokenHtml + submitHtml + formHtmlClosingTag;
+        return formHtml;
+    }
+</script>

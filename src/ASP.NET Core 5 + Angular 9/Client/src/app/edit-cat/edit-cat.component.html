@@ -1,0 +1,16 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-4"></div>
+        <div class="col-lg-4">
+            <form [formGroup]="catForm">
+                <img [src]="cat.imageUrl" alt="">
+                <div class="form-group">
+                    <label for="exampleFormControlTextarea1">Example textarea</label>
+                    <textarea class="form-control" id="exampleFormControlTextarea1" rows="3" formControlName="description"></textarea>
+                </div>
+                <button class="btn btn-primary" (click)="editCat()">Save</button>
+            </form>   
+        </div>
+        <div class="col-lg-4"></div>
+    </div>
+</div>

@@ -1,0 +1,59 @@
+﻿@using Resource = Resources.Areas.Administration.AccessLogs.Views.AccessLogsIndex;
+@using GeneralResource = Resources.Areas.Administration.AdministrationGeneral;
+
+@{
+    ViewBag.Title = Resource.Page_title;
+    const string ControllerName = "AccessLogs";
+}
+
+@section Styles{
+    @Styles.Render("~/Content/css/administration/administration-styles.css")
+}
+
+<div class="administration-container">
+    <h1>@ViewBag.Title</h1>
+
+    @(Html.Kendo().Grid<OJS.Web.Areas.Administration.ViewModels.AccessLogs.AccessLogGridViewModel>()
+        .Name("DataGrid")
+        .Columns(columns =>
+        {
+            columns.Bound(x => x.Id);
+            columns.Bound(x => x.UserName);
+            columns.Bound(x => x.IpAddress);
+            columns.Bound(x => x.RequestType);
+            columns.Bound(x => x.Url);
+            columns.Bound(x => x.PostParams);
+            columns.Bound(x => x.CreatedOn).Format(GlobalConstants.DefaultDateTimeFormatString).Hidden();
+            columns.Bound(x => x.ModifiedOn).Format(GlobalConstants.DefaultDateTimeFormatString).Hidden();
+        })
+        .ToolBar(toolbar =>
+        {
+            toolbar.Custom().Text(GeneralResource.Back_to_navigation).Action("Index", "Navigation", new { Area = GlobalConstants.AdministrationAreaName }).Name("custom-toolbar-button");
+            toolbar.Custom().Text(GeneralResource.Export_to_excel).Name("custom-toolbar-button").HtmlAttributes(new { id = "export" }).Url(Url.Action("ExportToExcel", ControllerName, new { page = 1, pageSize = "~", filter = "!!", sort = "~" }));
+        })
+        .ColumnMenu()
+        .Events(e => e.DataBound("onDataBound"))
+        .Pageable(x => x.Refresh(true))
+        .Sortable(x => x.Enabled(true).AllowUnsort(false))
+        .Filterable(x => x.Enabled(true))
+        .Reorderable(x => x.Columns(true))
+        .Resizable(x => x.Columns(true))
+        .DataSource(datasource => datasource
+            .Ajax()
+            .ServerOperation(true)
+            .Model(model =>
+            {
+                model.Id(x => x.Id);
+            })
+            .Sort(sort => sort.Add(x => x.CreatedOn).Descending())
+            .Read(read => read.Action("Read", ControllerName))
+            .Events(ev => ev.Error("validateModelStateErrors"))
+        )
+    )
+</div>
+
+<script type="text/javascript">
+    function onDataBound(e) {
+        CreateExportToExcelButton();
+    }
+</script>

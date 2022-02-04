@@ -1,0 +1,36 @@
+﻿@using OJS.Web;
+
+@using Resource = Resources.Views.Shared.LoginPartial;
+
+@if (Request.IsAuthenticated)
+{
+    using (Html.BeginForm("LogOff", "Account", new { area = string.Empty }, FormMethod.Post, new { id = "logoutForm", @class = "navbar-right login-form" }))
+    {
+        @Html.AntiForgeryToken()
+
+        <ul class="nav navbar-nav navbar-right">
+            <li class="logged-user-wrap @(User.IsAdmin() || User.IsLecturer() ? "admin" : "")">
+                @{  
+                    var welcomeMessage = string.Format("{0}, {1}!", Resource.Welcome_message, User.Identity.Name);
+                }
+                @Html.ActionLink(welcomeMessage, GlobalConstants.Index, "Profile", new { area = "Users" }, new { title = Resource.Settings, @class = "text-primary" })
+            </li>
+            <li><a href="javascript:document.getElementById('logoutForm').submit()">@Resource.Log_out</a></li>
+        </ul>
+    }
+}
+else
+{
+    <ul class="nav navbar-nav navbar-right">
+        @{
+            var langCookieName = System.Globalization.CultureInfo.CurrentUICulture.Name != GlobalConstants.BulgarianCultureInfoName
+                ? GlobalConstants.EnglishCultureCookieValue
+                : GlobalConstants.BulgarianCultureCookieValue;
+
+            var externalRegisterFullAddress = $"{string.Format(UrlConstants.ExternalRegisterUrlFormat, Settings.SulsPlatformBaseUrl)}?lang={langCookieName}";
+        }
+
+        <li><a href="@externalRegisterFullAddress">@Resource.Register</a></li>
+        <li>@Html.ActionLink(Resource.Log_in, "Login", "Account", new {area = string.Empty}, htmlAttributes: new {id = "loginLink"})</li>
+    </ul>
+}

@@ -1,0 +1,71 @@
+﻿@model OJS.Web.Areas.Contests.ViewModels.Results.ContestResultsViewModel
+
+@using OJS.Web.Areas.Contests.Controllers
+
+@using Resource = Resources.Areas.Contests.Views.ResultsFull
+
+@section Styles {
+    @Styles.Render("~/Content/Contests/results-page")
+}
+
+@{
+    ViewBag.Title = string.Format(Resource.Title, Model.Name);
+    var isOfficial = Model.IsCompete;
+}
+
+<ol class="breadcrumb">
+    <li><a href="/">@Resource.Home</a></li>
+    <li><a href="@ContestsHelper.GetUrl(Model.Id, Model.Name)">@Model.Name</a></li>
+    <li class="active">@Resource.Full_results</li>
+</ol>
+
+<h1>@ViewBag.Title</h1>
+<h2>
+    <span>
+        @(Html.ActionLink<ResultsController>(Resource.Public_results, c => c.Simple(Model.Id, Model.IsCompete, null), null, new { @class = "btn btn-primary" }))
+    </span>
+</h2>
+
+<br />
+
+<h4>
+    @(Ajax.ActionLink<ResultsController>(
+        Resource.ShowStatistics,
+        c => c.Stats(Model.Id, Model.IsCompete),
+        null,
+        new AjaxOptions
+        {
+            UpdateTargetId = "StatsContainer",
+            InsertionMode = InsertionMode.Replace,
+            LoadingElementId = "stats-container"
+        }))
+</h4>
+<div id="StatsContainer"></div>
+
+@Html.Partial("_LoadingMask", "stats-container")
+
+<br />
+
+@if (isOfficial)
+{
+    <h4>
+        @(Ajax.ActionLink<ResultsController>(
+            Resource.Average_result_by_minutes,
+            c => c.StatsChart(Model.Id),
+            null,
+            new AjaxOptions
+            {
+                UpdateTargetId = "StatsChartContainer",
+                InsertionMode = InsertionMode.Replace
+            }))
+    </h4>
+    <div id="StatsChartContainer"></div>
+}
+
+<br />
+
+@Html.Partial("_FullResultsPagedList", Model)
+
+@section Scripts {
+    @Scripts.Render("~/bundles/full-results-page")
+}

@@ -1,0 +1,9 @@
+﻿@model AspNetCoreSecurityDemo.Models.BookFormModel
+
+    <form asp-action="ParameterTampering" method="post">
+        <label asp-for="Title"></label>
+        <input asp-for="Title" />
+        <label asp-for="Description"></label>
+        <input asp-for="Description" />
+        <input type="submit" value="Search" />
+    </form>

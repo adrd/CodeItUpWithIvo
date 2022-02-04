@@ -1,0 +1,61 @@
+﻿@using Resource = Resources.Feedback.Views.FeedbackIndex
+
+@model OJS.Web.ViewModels.Feedback.FeedbackViewModel
+
+@{
+    ViewBag.Title = Resource.Title;
+}
+<ol class="breadcrumb">
+    <li><a href="/">@Resource.Home</a></li>
+    <li class="active">@ViewBag.Title</li>
+</ol>
+
+<h1>@ViewBag.Title</h1>
+<div class="container">
+    @using (Html.BeginForm())
+    {
+        @Html.ValidationSummary(true)
+
+        <div class="row">
+            <div class="col-md-5">
+                <div class="editor-label">
+                    @Html.LabelFor(m => m.Name)
+                </div>
+                <div class="editor-field feedback-editor-field">
+                    @Html.EditorFor(m => m.Name)
+                    @Html.ValidationMessageFor(m => m.Name)
+                </div>
+            </div>
+        </div>
+        <br />
+        <div class="row">
+            <div class="col-md-5">
+                <div class="editor-label">
+                    @Html.LabelFor(m => m.Email)
+                </div>
+                <div class="editor-field feedback-editor-field">
+                    @Html.EditorFor(m => m.Email)
+                    @Html.ValidationMessageFor(m => m.Email)
+                </div>
+            </div>
+        </div>
+        <br />
+        <div class="row">
+            <div class="col-md-5">
+                <div class="editor-label">
+                    @Html.LabelFor(m => m.Content)
+                </div>
+                <div class="editor-field">
+                    @Html.EditorFor(m => m.Content)
+                    @Html.ValidationMessageFor(m => m.Content)
+                </div>
+            </div>
+        </div>
+        <br />
+        <button class="btn btn-primary" type="submit">@Resource.Submit</button>
+    }
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

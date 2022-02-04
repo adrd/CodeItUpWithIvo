@@ -1,0 +1,24 @@
+﻿@using Resource = Resources.Areas.Administration.Contests.Views.EditorTemplates.CategoryDropDown;
+
+@model int?
+
+@(Html.Kendo().ComboBoxFor(m => m)
+      .Filter(FilterType.Contains)
+      .Placeholder(Resource.Choose_category)
+      .DataTextField("Name")
+      .DataValueField("Value")
+      .DataSource(data =>
+      {
+          data.ServerFiltering(true)
+              .Read(read => read.Action("GetCategories", "Contests").Data("filterContests"));
+      })
+      .HtmlAttributes(new { style = "width:100%" }))
+
+<script>
+    function filterContests() {
+        var input = $("#CategoryId").data("kendoComboBox").input.val();
+        return {
+            contestFilter: input
+        }
+    }
+</script>

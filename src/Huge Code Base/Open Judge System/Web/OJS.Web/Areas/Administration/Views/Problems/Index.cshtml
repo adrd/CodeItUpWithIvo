@@ -1,0 +1,66 @@
+﻿@model ProblemViewModel
+
+@using OJS.Web.Areas.Administration.ViewModels.Problem
+
+@using Resource = Resources.Areas.Administration.Problems.Views.ProblemsIndex
+
+@section Styles{
+    @Styles.Render("~/Content/administration/problems/index")
+}
+
+@{
+    ViewBag.Title = Resource.Page_title;
+}
+
+<h2>@ViewBag.Title</h2>
+
+<div class="container">
+    <div class="col-md-6">
+        @if (ViewBag.ContestId != null)
+        {
+            <input id="contestId" name="contestId" type="hidden" value="@ViewBag.ContestId" />
+        }
+        @if (ViewBag.ProblemId != null)
+        {
+            <input id="problemId" name="problemId" type="hidden" value="@ViewBag.ProblemId" />
+        }
+
+        @(Html.Partial("_ContestSearchPartial"))
+
+        @(Html.Partial("_ContestSearchCascadeFromCategoryPartial"))
+    </div>
+    <div class="col-md-6">
+        <div>
+            <strong>@Resource.Qucik_access_contest</strong>
+        </div>
+        @(Html.Kendo()
+            .TabStrip()
+            .Name("latest-courses")
+            .Items(tabstrip =>
+            {
+                tabstrip.Add()
+                    .Text(Resource.Future)
+                    .Selected(true)
+                    .LoadContentFrom("GetFutureContests", "Contests");
+
+                tabstrip.Add()
+                    .Text(Resource.Active)
+                    .LoadContentFrom("GetActiveContests", "Contests");
+
+                tabstrip.Add()
+                    .Text(Resource.Latest)
+                    .LoadContentFrom("GetLatestContests", "Contests");
+            })
+            .Events(ev => ev.ContentLoad("hideTheadFromGrid"))
+            .HtmlAttributes(new { @class = "col-md-12" }))
+    </div>
+</div>
+
+<br />
+<div class="jumbotron text-center text-white" id="status">@Resource.Problems_loading</div>
+<div id="problems-grid"></div>
+<div id="copy-popup-window"></div>
+
+@section scripts{
+    @Scripts.Render("~/bundles/problems-index");
+}

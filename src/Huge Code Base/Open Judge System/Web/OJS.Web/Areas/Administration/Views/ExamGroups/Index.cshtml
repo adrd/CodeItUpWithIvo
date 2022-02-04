@@ -1,0 +1,97 @@
+﻿@using Resource = Resources.Areas.Administration.ExamGroups.Views.ExamGroupsIndex
+@using GeneralResource = Resources.Areas.Administration.AdministrationGeneral
+
+@{
+    const string ControllerName = "ExamGroups";
+    const string ContestColumnIdSuffix = "_ContestName";
+
+    ViewBag.Title = Resource.Page_title;
+}
+
+@section Styles{
+    @Styles.Render("~/Content/administration/examGroups/index")
+}
+
+<div class="administration-container">
+    <h1>@ViewBag.Title</h1>
+
+    @(Html.Kendo().Grid<OJS.Web.Areas.Administration.ViewModels.ExamGroups.ExamGroupAdministrationViewModel>()
+        .Name("DataGrid")
+        .Columns(columns =>
+        {
+            columns.Bound(m => m.Id).Hidden();
+            columns.Bound(m => m.Name);
+            columns.Bound(m => m.ContestName).HtmlAttributes(new { id = "#= Id #" + ContestColumnIdSuffix });
+            columns.Bound(m => m.ExternalExamGroupId).Hidden();
+            columns.Bound(m => m.ExternalAppId);
+            columns.Command(command => command.Edit().Text(" ").UpdateText(GeneralResource.Change).CancelText(GeneralResource.Cancel)).Width(80).Title(GeneralResource.Edit);
+            columns.Command(command => command.Destroy().Text(" ")).Width(80).Title(GeneralResource.Delete);
+        })
+        .ToolBar(toolbar =>
+        {
+            toolbar.Create().Text(GeneralResource.Create);
+            toolbar.Custom().Text(GeneralResource.Back_to_navigation).Action("Index", "Navigation", new { area = GlobalConstants.AdministrationAreaName }).Name("custom-toolbar-button");
+        })
+        .Editable(editable =>
+        {
+            editable.Mode(GridEditMode.PopUp);
+            editable.Window(w =>w.Title(Resource.Page_title).Width(700));
+            editable.DisplayDeleteConfirmation(GeneralResource.Delete_prompt);
+        })
+        .ColumnMenu()
+        .Pageable(x => x.Refresh(true).PageSizes(true))
+        .Sortable(x => x.Enabled(true).AllowUnsort(false))
+        .Filterable(x => x.Enabled(true))
+        .Resizable(x => x.Columns(true))
+        .DataSource(data =>
+        {
+            data
+                .Ajax()
+                .ServerOperation(true)
+                .Model(model => model.Id(x => x.Id))
+                .Sort(sort => sort.Add(field => field.Id).Descending())
+                .Create(read => read.Action("Create", "ExamGroups"))
+                .Read(read => read.Action("Read", "ExamGroups"))
+                .Update(update => update.Action("Update", ControllerName))
+                .Destroy(destroy => destroy.Action("Destroy", ControllerName))
+                .Events(ev => ev.Error("validateModelStateErrors"));
+        })
+        .Events(ev =>
+        {
+            ev.Edit("onEdit");
+            ev.DetailExpand("onDetailExpand");
+        })
+        .ClientDetailTemplateId("_UsersInExamGroupGridTemplate")
+    )
+    
+    @Html.Partial("_UsersInExamGroupGridTemplate")
+</div>
+
+<script type="text/javascript">
+    function onDetailExpand(e) {
+        var contestName = $(e.masterRow[0].cells)
+            .filter(function(i, cell) {
+                var cellId = $(cell).attr("id");
+                return typeof cellId != typeof undefined && cellId.indexOf("@ContestColumnIdSuffix") >= 0;
+            })
+            .first()
+            .text();
+
+        if (contestName === '') {
+            var addButtons = $(e.detailRow).find($('.k-grid-bulk-add-users-buton, .k-grid-add'));
+            disableKendoButtons(addButtons);
+
+            var message = $(e.detailRow).find('.cannot-add-remove-users');
+            if (message.length) {
+                message.show();
+            } else {
+                addButtons.last().after('<span class="cannot-add-remove-users">' +
+                    '<span class="glyphicon glyphicon-exclamation-sign"></span> @Resource.Cannot_manipulate_users</span>');
+            }
+        }
+    }
+</script>
+
+@section Scripts{
+    @Scripts.Render("~/bundles/exam-groups-index")
+}

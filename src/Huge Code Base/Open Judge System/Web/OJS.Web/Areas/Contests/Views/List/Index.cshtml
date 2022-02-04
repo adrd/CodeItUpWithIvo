@@ -1,0 +1,57 @@
+﻿@using OJS.Web.Areas.Administration.Controllers
+@using OJS.Web.Areas.Contests.Controllers
+
+@using Resource = Resources.Areas.Contests.Views.ListIndex
+
+@{
+    ViewBag.Title = Resource.Title;
+}
+
+@section Styles{
+    @Styles.Render("~/Content/contests/list/index")
+}
+
+<ol class="breadcrumb">
+    <li><a href="/">@Resource.Home</a></li>
+    <li><a href="@(Url.Action<ListController>(c => c.Index()))">@Resource.Contests</a></li>
+</ol>
+
+<div class="row loading-mask-container">
+    <div class="col-md-3">
+        <h2>@ViewBag.Title</h2>
+
+        @(Html.Kendo().TreeView()
+            .Name("contestsCategories")
+            .DataTextField("Name")
+            .DataSource(dataSource => dataSource
+                .Model(m =>
+                {
+                    m.Id("Id");
+                    m.HasChildren("HasChildren");
+                })
+                .Read(read => read.Action("ReadCategories", "List", new {area = "Contests"})))
+            .Events(ev =>
+            {
+                ev.Select("expander.categorySelected");
+                ev.DataBound("expander.onDataBound");
+            }))
+
+        @if (User.IsAdmin())
+        {
+            <br />
+            <p class="pull-left"><a class="btn btn-primary" href="@(Url.Action<ContestCategoriesController>(c => c.Index()))">@Resource.Categories &raquo;</a></p>
+            <p class="pull-right"><a class="btn btn-primary" href="@(Url.Action<ContestCategoriesController>(c => c.Hierarchy()))">@Resource.Hierarchy &raquo;</a></p>
+            <div class="clearfix"></div>
+        }
+    </div>
+    <div class="col-md-9">
+        <div id="contestsList">
+        </div>
+    </div>
+    
+    @Html.Partial("_LoadingMask", "contest-categories-loading-mask")
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/list-categories")
+}

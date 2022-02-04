@@ -1,0 +1,36 @@
+﻿@using OJS.Web.Areas.Administration.Controllers
+@using OJS.Web.Areas.Administration.ViewModels.ProblemGroup
+
+@using SharedResource = Resources.Areas.Administration.Shared.Views.Partials.Partials
+
+@model OJS.Web.Areas.Administration.ViewModels.ProblemGroup.CopyAllProblemGroupsViewModel
+
+@{
+    const string loadingMaskContainerId = "copy-all-window-loading-mask";
+}
+
+@using (Ajax.BeginForm<ProblemGroupsController>(
+    c => c.CopyAll((CopyAllProblemGroupsViewModel)null),
+    FormMethod.Post,
+    new AjaxOptions
+    {
+        OnSuccess = "onCopySuccess",
+        OnFailure = "onCopyFailure",
+        LoadingElementId = loadingMaskContainerId
+    }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.FromContestId)
+
+    <div class="form-group">
+        @Html.LabelFor(m => m.ContestId, new { @class = "control-label" })
+
+        <div>
+            @Html.EditorFor(m => m.ContestId, new { @class = "form-control" })
+        </div>
+    </div>
+
+    <input class="k-button pull-right" type="submit" value="@SharedResource.Copy" />
+}
+
+@Html.Partial("_LoadingMask", loadingMaskContainerId)

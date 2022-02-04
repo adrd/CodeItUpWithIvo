@@ -1,0 +1,8 @@
+﻿@model List<string>
+
+@foreach (var image in Model)
+{
+    <a href="/Images/Fullscreen/@image" >
+        <img src="/Images/Thumbnail/@image" />
+    </a>
+}

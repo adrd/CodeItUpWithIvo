@@ -1,0 +1,95 @@
+﻿@using OJS.Services.Cache.Models
+@using OJS.Web.Areas.Contests.Controllers;
+
+@using Resource = Resources.Home.Views.Index;
+
+@model OJS.Web.ViewModels.Home.Index.IndexViewModel
+
+@{
+    ViewBag.Title = Resource.Title;
+}
+
+@section Styles{
+    @Styles.Render("~/Content/home/index")
+}
+
+<div class="jumbotron">
+    <div class="row">
+        <div class="col-md-7">
+            <h1>@Resource.Project_title</h1>
+            @{
+                var languageSuffix = System.Globalization.CultureInfo.CurrentUICulture.Name != GlobalConstants.BulgarianCultureInfoName
+                    ? GlobalConstants.EnglishCultureCookieValue
+                    : GlobalConstants.BulgarianCultureCookieValue;
+            }
+            <a href="@($"/Content/PublicFiles/SoftUni-Judge-System-Guidelines-{languageSuffix}.pdf")" target="_blank">@Resource.Guidelines_link_title</a>
+            <div class="video-wrapper top-buffer">
+                <iframe src="https://www.youtube.com/embed/IwLET8SDBE4/?autoplay=0&rel=0&showinfo=0" allowfullscreen></iframe>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <h2>@Resource.Contest_categories</h2>
+            <div id="top-level-contest-categories" class="list-group">
+                @foreach (CategoryMenuItemViewModel category in ViewBag.MainCategories ?? Enumerable.Empty<object>())
+                {
+                    <a class="list-group-item" href="@($"/Contests/#!/List/ByCategory/{category.Id}/{category.NameUrl}")">@category.Name</a>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-7">
+            <h2>@Resource.Active_contests</h2>
+            @if (Model.ActiveContests.Any())
+            {
+                <div class="contests-scrollable-container">
+                    <table class="table table-hover">
+                        @foreach (var contest in Model.ActiveContests)
+                        {
+                            <tr>
+                                <td>
+                                    <a href="@ContestsHelper.GetUrl(contest.Id, contest.Name)"><strong>@contest.Name</strong></a><br/>
+                                    <small>
+                                        @Resource.Remaining_time: @(contest.EndTime.HasValue
+                                            ? TimeHelper.GetReadableRemainingTime(contest.EndTime.Value).ToString()
+                                            : Resource.Infinite)
+                                    </small>
+                                </td>
+                                <td class="participate">
+                                    @(Html.ActionLink<CompeteController>(Resource.Participate, c => c.Index(contest.Id, true, false), null, new { @class = "btn btn-sm btn-primary pull-left" }))
+                                </td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="top-buffer-lg">@Resource.No_active_contests</p>
+            }
+        </div>
+        <div id="previous-contests" class="col-md-5">
+            <h2>@Resource.Previous_contests</h2>
+            @if (!Model.PastContests.Any())
+            {
+                <p>@Resource.No_previous_contests</p>
+            }
+            else
+            {
+                <div class="contests-scrollable-container">
+                    <table class="table table-hover">
+                        @foreach (var contest in Model.PastContests)
+                        {
+                            <tr>
+                                <td>
+                                    <a href="@ContestsHelper.GetUrl(contest.Id, contest.Name)">@contest.Name</a>
+                                    <p class="text-right">@Resource.Ended: @contest.EndTime.ToString()</p>
+                                </td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

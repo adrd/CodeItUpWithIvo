@@ -1,0 +1,42 @@
+﻿@model OJS.Web.Areas.Contests.ViewModels.Results.ContestResultsViewModel
+
+@using OJS.Web.Areas.Contests.Controllers
+
+@using Resource = Resources.Areas.Contests.Views.ResultsSimple
+
+@{
+    ViewBag.Title = string.Format(Resource.Title, Model.Name, Model.IsCompete ? string.Empty : " (Practice)");
+    ViewBag.Subtitle = Model.IsCompete ? string.Empty : Resource.CachedResults;
+}
+
+@section Styles {
+    @Styles.Render("~/Content/Contests/results-page")
+}
+
+<ol class="breadcrumb">
+    <li><a href="/">@Resource.Home</a></li>
+    <li><a href="@ContestsHelper.GetUrl(Model.Id, Model.Name)">@Model.Name</a></li>
+    <li class="active">@Resource.Simple_results</li>
+</ol>
+
+<h1 class="text-center">@ViewBag.Title</h1>
+<h3 class="text-center">
+    @ViewBag.Subtitle
+    <br />
+    <br />
+    @if (Model.UserHasContestRights)
+    {
+        <span>
+            @(Html.ActionLink<ResultsController>(Resource.Detailed_results, c => c.Full(Model.Id, Model.IsCompete, null), null, new { @class = "btn btn-primary" }))
+        </span>
+        <span>
+            @(Html.ActionLink<ResultsController>(Resource.Export_results, c => c.Export(Model.Id, Model.IsCompete), null, new { @class = "btn btn-primary" }))
+        </span>
+    }
+</h3>
+
+@Html.Partial("_SimpleResultsPagedList", Model)
+
+@section Scripts {
+    @Scripts.Render("~/bundles/simple-results-page")
+}

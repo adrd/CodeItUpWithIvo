@@ -1,0 +1,82 @@
+﻿@using OJS.Web.Areas.Contests.Controllers
+
+@using Resource = Resources.Areas.Administration.Contests.Views.ContestIndex
+@using GeneralResource = Resources.Areas.Administration.AdministrationGeneral
+
+@{
+    ViewBag.Title = Resource.Page_title;
+    const string ControllerName = "Contests";
+}
+
+@section Styles{
+    @Styles.Render("~/Content/css/administration/administration-styles.css")
+}
+
+<div class="administration-container">
+    <h1>@ViewBag.Title</h1>
+
+    @(Html.Kendo().Grid<OJS.Web.Areas.Administration.ViewModels.Contest.ContestAdministrationViewModel>()
+        .Name("DataGrid")
+        .Columns(columns =>
+        {
+            columns.Bound(x => x.Id);
+            columns.Bound(x => x.CategoryName);
+            columns.Bound(x => x.Name).ClientTemplate("#= makeContestNameLinkToDetailsPage(data) #");
+            columns.Bound(x => x.StartTime).Format(GlobalConstants.DefaultDateTimeFormatString);
+            columns.Bound(x => x.EndTime).Format(GlobalConstants.DefaultDateTimeFormatString);
+            columns.Bound(x => x.PracticeStartTime).Format(GlobalConstants.DefaultDateTimeFormatString);
+            columns.Bound(x => x.PracticeEndTime).Format(GlobalConstants.DefaultDateTimeFormatString).Hidden();
+            columns.Bound(x => x.IsVisible).Hidden();
+            columns.Bound(x => x.CreatedOn).Format(GlobalConstants.DefaultDateTimeFormatString).Hidden();
+            columns.Bound(x => x.ModifiedOn).Format(GlobalConstants.DefaultDateTimeFormatString).Hidden();
+            columns.Command(c => c.Custom(Resource.Download_submissions).Click("showDownloadSubmissionsPopup")).Title(Resource.Submissions).Width(200);
+            columns.Template(@<text></text>).ClientTemplate($"<a class='k-button' href='{Url.Action<ResultsController>(c => c.Export(null, true))}/#=Id#'>{Resource.For_compete}</a><br /><a class='k-button' href='{Url.Action<ResultsController>(c => c.Export(null, false))}/#=Id#'>{Resource.For_practice}</a>").Title(Resource.Ranking).Width(200);
+            columns.Template(@<text></text>).ClientTemplate($"<a class='k-button' href='Problems/Contest/#=Id#'>{Resource.Problems}</a><br /><a class='k-button' href='{Url.Action("Contest", "Participants")}/#=Id#'>{Resource.Participants}</a>").Title(Resource.Other);
+            columns.Template(@<text></text>).ClientTemplate($"<a class='k-button' href='{Url.Action("Edit", "Contests")}/#=Id#'>{GeneralResource.Edit}</a>").Title(GeneralResource.Change);
+            columns.Command(command => command.Destroy().Text(" ")).Width(80).Title(GeneralResource.Delete);
+        })
+        .ToolBar(toolbar =>
+        {
+            toolbar.Custom().Text(GeneralResource.Create).Action("Create", ControllerName);
+            toolbar.Custom().Text(GeneralResource.Back_to_navigation).Action("Index", "Navigation", new { Area = GlobalConstants.AdministrationAreaName }).Name("custom-toolbar-button");
+            toolbar.Custom().Text(GeneralResource.Export_to_excel).Name("custom-toolbar-button").HtmlAttributes(new { id = "export" }).Url(Url.Action("ExportToExcel", ControllerName, new { page = 1, pageSize = "~", filter = "!!", sort = "~" }));
+        })
+        .Editable(editable =>
+        {
+            editable.Mode(GridEditMode.PopUp);
+            editable.Window(w => w.Title(ViewBag.Title));
+            editable.DisplayDeleteConfirmation(GeneralResource.Delete_prompt);
+        })
+        .ColumnMenu()
+        .ClientDetailTemplateId("_ContestQuestionsGridTemplate")
+        .Events(e => e.DataBound("onDataBound"))
+        .Pageable(x => x.Refresh(true))
+        .Sortable(x => x.Enabled(true).AllowUnsort(false))
+        .Filterable(x => x.Enabled(true))
+        .Groupable(x =>
+        {
+            x.Enabled(true);
+            x.Messages(m => m.Empty(GeneralResource.Group_by_message));
+        })
+        .Reorderable(x => x.Columns(true))
+        .Resizable(x => x.Columns(true))
+        .DataSource(data =>
+        {
+            data.Ajax()
+                .ServerOperation(true)
+                .Model(model => model.Id(x => x.Id))
+                .Sort(sort => sort.Add(x => x.CreatedOn).Descending())
+                .Create(create => create.Action("Create", ControllerName))
+                .Read(read => read.Action("Read", ControllerName))
+                .Update(update => update.Action("Update", ControllerName))
+                .Destroy(destroy => destroy.Action("Destroy", ControllerName))
+                .Events(ev => ev.Error("validateModelStateErrors"));
+        }))
+
+    @Html.Partial("_DownloadSubmissionsPopupWindow")
+    @Html.Partial("_ContestQuestionsGridTemplate")
+</div>
+
+@section scripts {
+    @Scripts.Render("~/bundles/contests-index")
+}

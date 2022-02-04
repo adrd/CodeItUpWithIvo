@@ -1,0 +1,29 @@
+﻿@model OJS.Web.Areas.Administration.ViewModels.LecturersInContests.LecturerInContestShortViewModel
+
+<div class="editor-label">
+    @Html.LabelFor(x => x.ContestName)
+</div>
+
+<div class="editor-field">
+    @(Html.Kendo().ComboBoxFor(m => m.ContestId)
+        .Name("ContestId")
+        .DataValueField("Id")
+        .DataTextField("Name")
+        .Filter(FilterType.Contains)
+        .MinLength(3)
+        .Placeholder("Изберете обучение")
+        .DataSource(data => data
+            .ServerFiltering(true)
+            .Read(read =>
+            {
+                read
+                    .Action("GetAvailableContestsContaining", "LecturersKendoRemoteData", new {area = "Administration"})
+                    .Data(@<text>
+                            function () { return { contestFilter: $('\\#ContestId').data('kendoComboBox').input.val() }; }
+                        </text>);
+            }))
+        .HtmlAttributes(new { style = "width: 100%;" })
+    )
+
+    @Html.ValidationMessageFor(x => x.ContestId)
+</div>

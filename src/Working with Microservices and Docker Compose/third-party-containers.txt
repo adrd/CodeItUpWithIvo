@@ -1,0 +1,19 @@
+SQL Server 2019:
+
+docker run `
+  -e ACCEPT_EULA=Y `
+  -e SA_PASSWORD=yourStrongPassword12#$ `
+  -p 1433:1433 `
+  -d mcr.microsoft.com/mssql/server:2019-latest
+
+--------------------------------------------------
+
+RabbitMQ:
+
+docker run `
+  -e RABBITMQ_DEFAULT_USER=rabbitmquser `
+  -e RABBITMQ_DEFAULT_PASS=rabbitmqPassword12! `
+  --hostname rabbitmq `
+  --name rabbitmq `
+  -p 5672:5672 `
+  -d rabbitmq:3-management

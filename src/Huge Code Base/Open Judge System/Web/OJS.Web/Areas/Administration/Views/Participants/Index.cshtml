@@ -1,0 +1,37 @@
+﻿@using Resource = Resources.Areas.Administration.Participants.Views.ParticipantsIndex;
+@{
+    ViewBag.Title = Resource.Page_title;
+}
+
+<h2>@ViewBag.Title</h2>
+
+<div class="row">
+    <div class="col-md-10">
+        @Html.Partial("_ContestSearchPartial")
+    </div>
+    <div class="col-md-2 text-right">
+        @Ajax.ActionLink(Resource.Clear, "RenderGrid", null, new AjaxOptions { InsertionMode = InsertionMode.Replace, UpdateTargetId = "participants-grid", OnSuccess = "clearContestComboBox" }, new { @class = "btn btn-primary btn-sm" })
+    </div>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12" id="participants-grid">
+        @Html.Partial("_Participants")
+    </div>
+</div>
+
+@section scripts{
+    <script>
+        function onSearchSelect(e) {
+            var contestId = this.dataItem(e.item.index()).Id;
+
+            $.post('/Administration/Participants/RenderGrid/' + contestId, function (data) {
+                $("#participants-grid").html(data);
+            });
+        }
+
+        function clearContestComboBox() {
+            $("#contests").data("kendoComboBox").value(null);
+        }
+    </script>
+}
